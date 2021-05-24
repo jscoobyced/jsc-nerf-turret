@@ -19,3 +19,7 @@
 # Executables
 *.exe
 *.out
+bin
+
+# Chroot
+chroot-dir

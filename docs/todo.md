@@ -1,6 +1,7 @@
 These are all the stages to complete Mark I:
 - [x] Create a plan and issues in GH Project
-- [x] Identify the GUI application to create electronic schematics
+- [x] Identify the GUI application to create electronic schematics  
+--> Use [EasyEDA](https://easyeda.com/page/download)
 - [ ] Electronic schematic and components values for turret
 - [ ] Electronic schematic and components values for BLDCs
 - [ ] Electronic schematic and components values for trigger
