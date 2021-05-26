@@ -1,8 +1,9 @@
-#define JSC_RFCOMM_CHANNEL 11
+#define BLUETOOTH_DISCOVERY_TIMEOUT_SECONDS 1
 
-char jsc_turret_uuid[] = {0xfa, 0xba, 0x12, 0x32, 0x1a, 0x5f, 0xe3, 0x90,
-                          0xb3, 0xcc, 0xe2, 0xab, 0xce, 0xef, 0x0c, 0xed};
+#define BLUETOOTH_SERVICE_NAME "JSC Nerf Turret"
+#define BLUETOOTH_SERVICE_DESCRIPTION "Service for the JSC Nerf Turret"
+#define BLUETOOTH_SERVICE_PROVIDER "JScoobyCed"
+#define BLUETOOTH_SERVICE_CHANNEL 22
 
-char bt_service_name[] = "JSC Nerf Turret";
-char bt_service_description[] = "Service for the JSC Nerf Turret";
-char bt_service_provider[] = "JScoobyCed";
+#define BLUETOOTH_SERVICE_PATH "/org/bluez/jscturret"
+#define BLUETOOTH_SERVICE_UUID "AD423591-A6EC-495A-996B-5B56B5704E52"
