@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <glib.h>
 #include <gio/gio.h>
 #include "btservice.h"
@@ -64,12 +65,12 @@ static void device_appeared(GDBusConnection *connection,
 				get_device_info(property_name, prop_val, device, ((userData *)user_data)->uuid);
 			}
 
-			if (strlen(device->uuid) > 0)
+			if (strlen(device->name) > 0 && strlen(device->address) > 0 && strlen(device->uuid) > 0)
 			{
 				g_strlcpy(((userData *)user_data)->device->name, device->name, sizeof(device->name));
 				g_strlcpy(((userData *)user_data)->device->address, device->address, sizeof(device->address));
 				g_strlcpy(((userData *)user_data)->device->uuid, device->uuid, sizeof(device->uuid));
-				g_main_loop_quit(((userData *)user_data)->loop);
+				device_found(connection, user_data);
 			}
 			free(device);
 			g_variant_unref(prop_val);
@@ -98,6 +99,27 @@ static int adapter_call_method(GDBusConnection *connection, const char *method)
 		return 1;
 
 	g_variant_unref(result);
+	return 0;
+}
+
+static int adapter_call_method_async(
+		GDBusConnection *connection,
+		const char *method,
+		GVariant *param,
+		BluetoothConnectCallback method_callback)
+{
+	g_dbus_connection_call(connection,
+												 "org.bluez",
+												 "/org/bluez/hci0",
+												 "org.bluez.Adapter1",
+												 method,
+												 param,
+												 NULL,
+												 G_DBUS_CALL_FLAGS_NONE,
+												 -1,
+												 NULL,
+												 method_callback,
+												 (void *)method);
 	return 0;
 }
 
@@ -131,12 +153,7 @@ static gboolean timeout_triggered(gpointer user_data)
 	((userData *)user_data)->counter = counter;
 	if (counter < BLUETOOTH_DISCOVERY_MAX_WAIT_SECONDS)
 	{
-		if (strlen(((userData *)user_data)->device->uuid) > 0)
-		{
-			g_main_loop_quit(((userData *)user_data)->loop);
-			return FALSE;
-		}
-		return TRUE;
+		return !(strlen(((userData *)user_data)->device->uuid) > 0);
 	}
 	else
 	{
@@ -144,6 +161,101 @@ static gboolean timeout_triggered(gpointer user_data)
 		return FALSE;
 	}
 	return TRUE;
+}
+
+static void property_value(const gchar *key, GVariant *value)
+{
+	const gchar *type = g_variant_get_type_string(value);
+
+	g_print("\t%s : ", key);
+	switch (*type)
+	{
+	case 'o':
+	case 's':
+		g_print("%s\n", g_variant_get_string(value, NULL));
+		break;
+	case 'b':
+		g_print("%d\n", g_variant_get_boolean(value));
+		break;
+	case 'u':
+		g_print("%d\n", g_variant_get_uint32(value));
+		break;
+	case 'a':
+		if (g_strcmp0(type, "as"))
+			break;
+		g_print("\n");
+		const gchar *uuid;
+		GVariantIter i;
+		g_variant_iter_init(&i, value);
+		while (g_variant_iter_next(&i, "s", &uuid))
+			g_print("\t\t%s\n", uuid);
+		break;
+	default:
+		g_print("Other\n");
+		break;
+	}
+}
+
+static void result_async_cb(GObject *con,
+														GAsyncResult *res,
+														gpointer data)
+{
+	const gchar *key = (gchar *)data;
+	GVariant *result = NULL;
+	GError *error = NULL;
+
+	g_print("Data is: %s.\n", key);
+	result = g_dbus_connection_call_finish((GDBusConnection *)con, res, &error);
+	if (error != NULL)
+	{
+		g_print("Unable to get result: %s\n", error->message);
+		return;
+	}
+
+	if (result)
+	{
+		result = g_variant_get_child_value(result, 0);
+		property_value(key, result);
+	}
+	g_variant_unref(result);
+}
+
+void device_found(GDBusConnection *connection, userData *data)
+{
+	data->callback(data->device);
+	int resultCode = adapter_call_method(connection, "StopDiscovery");
+	g_usleep(100);
+	if (resultCode)
+	{
+		g_main_loop_quit(data->loop);
+	}
+	resultCode = adapter_connect_device(connection, data->device->address);
+	if (resultCode != RESULT_OK)
+	{
+		g_print("Cannot connect to device %s.\n", data->device->address);
+		g_main_loop_quit(data->loop);
+	}
+}
+
+int adapter_connect_device(GDBusConnection *connection, char *address)
+{
+	int result;
+	GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE_VARDICT);
+	g_variant_builder_add(builder, "{sv}", "Address", g_variant_new_string(address));
+	GVariant *device_dict = g_variant_builder_end(builder);
+	g_variant_builder_unref(builder);
+
+	g_print("Attempting to connect to %s.\n", address);
+	result = adapter_call_method_async(connection,
+																		 "ConnectDevice",
+																		 g_variant_new_tuple(&device_dict, 1),
+																		 result_async_cb);
+	if (result)
+	{
+		return ERR_CANNOT_CONNECT_DEVICE;
+	}
+
+	return RESULT_OK;
 }
 
 int register_profile(GDBusProxy *proxy,
@@ -280,6 +392,7 @@ int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int t
 	}
 
 	userData->loop = g_main_loop_new(NULL, FALSE);
+	userData->callback = callback;
 
 	userData->device = malloc(sizeof(btDevice));
 	userData->counter = 0;
@@ -312,17 +425,6 @@ int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int t
 
 	g_timeout_add(timeout * 1000, timeout_triggered, userData);
 	g_main_loop_run(userData->loop);
-
-	resultCode = adapter_call_method(connection, "StopDiscovery");
-	if (resultCode)
-	{
-		ret = ERR_CANNOT_STOP_SCAN;
-		goto out;
-	}
-
-	g_usleep(100);
-
-	callback(userData->device);
 
 	resultCode = adapter_set_property(connection, "Powered", g_variant_new("b", FALSE));
 	if (resultCode)

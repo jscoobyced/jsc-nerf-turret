@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <gio/gio.h>
 
 #define BLUETOOTH_NAME_MAX_LENGTH_BYTES 248
 #define BLUETOOTH_ADDRESS_STRING_SIZE 18
@@ -17,6 +18,7 @@
 #define ERR_CANNOT_STOP_SCAN 504
 #define ERR_CUSTOM_PATH_INVALID 505
 #define ERR_CANNOT_REGISTER_PROFILE 506
+#define ERR_CANNOT_CONNECT_DEVICE 507
 
 typedef struct BtDevice
 {
@@ -25,15 +27,20 @@ typedef struct BtDevice
   gchar uuid[4 * BLUETOOTH_UUID_STRING_SIZE];
 } btDevice;
 
+typedef void (*BluetoothDeviceCallback)(btDevice *);
+
+typedef void (*BluetoothConnectCallback)(GObject *, GAsyncResult *, gpointer);
+
 typedef struct UserData
 {
   GMainLoop *loop;
   gchar uuid[4 * BLUETOOTH_UUID_STRING_SIZE];
   btDevice *device;
   int counter;
+  BluetoothDeviceCallback callback;
 } userData;
-
-typedef void (*BluetoothDeviceCallback)(btDevice *device);
 
 int discover_service(BluetoothDeviceCallback callback, char *uuid, int timeout);
 int register_service(char *service_path, char *service_name, int service_channel, char *service_uuid);
+void device_found(GDBusConnection *connection, userData *data);
+int adapter_connect_device(GDBusConnection *connection, char *address);
