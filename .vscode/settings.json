@@ -1,0 +1,26 @@
+{
+  "files.associations": {
+    "stepper.h": "c",
+    "sdp_test.h": "c",
+    "sdp_register.h": "c",
+    "cstdio": "c",
+    "*.ipp": "c",
+    "cstring": "c",
+    "typeinfo": "c",
+    "string.h": "c",
+    "unistd.h": "c",
+    "stdio.h": "c",
+    "typeindex": "c",
+    "bluetooth.h": "c",
+    "sdp.h": "c",
+    "btservice.h": "c",
+    "jscturret.h": "c",
+    "coroutine": "c",
+    "random": "c",
+    "btserver.h": "c",
+    "logger.h": "c"
+  },
+  "files.watcherExclude": {
+    "**/chroot-dir/**": true
+  }
+}

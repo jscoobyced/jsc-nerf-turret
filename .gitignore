@@ -19,3 +19,16 @@
 # Executables
 *.exe
 *.out
+bin
+
+# Chroot
+chroot-dir
+
+# Build
+autom4te.cache
+build
+config
+configure
+m4
+aclocal.m4
+*.in
