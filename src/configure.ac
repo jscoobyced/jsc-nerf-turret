@@ -6,6 +6,7 @@ LT_PREREQ([2.2])
 AC_PROG_CC
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
+                 utils/Makefile
                  stepper/Makefile
                  jscturret/Makefile
                  btservice/Makefile])

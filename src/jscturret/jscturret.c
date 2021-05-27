@@ -1,5 +1,6 @@
 #include <stdio.h>
-#include "btservice.h"
+#include "btserver.h"
+#include "btclient.h"
 #include "jscturret.h"
 
 void deviceCallback(btDevice *device)

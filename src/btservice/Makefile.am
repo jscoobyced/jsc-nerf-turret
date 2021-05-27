@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libbtservice.la
-libbtservice_la_SOURCES = btservice.c
-include_HEADERS = btservice.h
-libbtservice_la_CPPFLAGS = -I$(top_srcdir)/include
+libbtservice_la_SOURCES = btserver.c btclient.c
+include_HEADERS = btconstant.h btserver.h btclient.h
+libbtservice_la_CPPFLAGS = -I$(top_srcdir)/utils
 libbtservice_la_CPPFLAGS += -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include
 libbtservice_la_CPPFLAGS += -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
 libbtservice_la_CPPFLAGS += -I/usr/include/dbus-1.0 -I/usr/lib/arm-linux-gnueabihf/dbus-1.0/include
@@ -12,3 +12,4 @@ libbtservice_la_LIBADD = -ldbus-glib-1
 libbtservice_la_LIBADD += -lglib-2.0 -lgobject-2.0
 libbtservice_la_LIBADD += -ldbus-1
 libbtservice_la_LIBADD += -lgio-2.0
+libbtservice_la_LIBADD += ../utils/libjscutils.la

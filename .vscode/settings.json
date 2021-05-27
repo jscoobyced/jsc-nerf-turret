@@ -16,7 +16,9 @@
     "btservice.h": "c",
     "jscturret.h": "c",
     "coroutine": "c",
-    "random": "c"
+    "random": "c",
+    "btserver.h": "c",
+    "logger.h": "c"
   },
   "files.watcherExclude": {
     "**/chroot-dir/**": true
