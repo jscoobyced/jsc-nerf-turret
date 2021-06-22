@@ -1,6 +1,13 @@
 bin_PROGRAMS = jscturret
 jscturret_SOURCES = jscturret.c
 jscturret_CPPFLAGS = -I$(top_srcdir)/btservice/
+jscturret_CPPFLAGS += -I$(top_srcdir)/utils/
 jscturret_CPPFLAGS += -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
 jscturret_CPPFLAGS += -I/usr/include/glib-2.0 -I/usr/lib/arm-linux-gnueabihf/glib-2.0/include
-jscturret_LDADD = ../btservice/libbtservice.la
+jscturret_CPPFLAGS += -I/usr/include/gio-unix-2.0
+jscturret_LDADD = -ldbus-glib-1
+jscturret_LDADD += -lglib-2.0 -lgobject-2.0
+jscturret_LDADD += -ldbus-1
+jscturret_LDADD += -lgio-2.0
+jscturret_LDADD += ../btservice/libbtservice.la
+jscturret_LDADD += ../utils/libjscutils.la

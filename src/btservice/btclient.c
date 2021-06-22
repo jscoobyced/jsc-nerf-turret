@@ -20,6 +20,12 @@ static void get_device_info(const gchar *key, GVariant *value, btDevice *device,
 		g_strlcpy(device->address, address, sizeof(device->address));
 		return;
 	}
+	if (g_strcmp0(key, "Adapter") == 0)
+	{
+		const gchar *adapter = g_variant_get_string(value, NULL);
+		g_strlcpy(device->adapter, adapter, sizeof(device->adapter));
+		return;
+	}
 	if (g_strcmp0(key, "UUIDs") == 0)
 	{
 		const gchar *uuid;
@@ -37,6 +43,7 @@ static void get_device_info(const gchar *key, GVariant *value, btDevice *device,
 		}
 		return;
 	}
+	display_value(key, value);
 }
 
 static void device_appeared(GDBusConnection *connection,
@@ -51,6 +58,7 @@ static void device_appeared(GDBusConnection *connection,
 	const char *object;
 	const gchar *interface_name;
 	GVariant *properties;
+	userData *data = ((userData *)user_data);
 
 	g_variant_get(parameters, "(&oa{sa{sv}})", &object, &interfaces);
 	while (g_variant_iter_next(interfaces, "{&s@a{sv}}", &interface_name, &properties))
@@ -64,14 +72,15 @@ static void device_appeared(GDBusConnection *connection,
 			g_variant_iter_init(&i, properties);
 			while (g_variant_iter_next(&i, "{&sv}", &property_name, &prop_val))
 			{
-				get_device_info(property_name, prop_val, device, ((userData *)user_data)->uuid);
+				get_device_info(property_name, prop_val, device, data->uuid);
 			}
 
-			if (strlen(device->name) > 0 && strlen(device->address) > 0 && strlen(device->uuid) > 0)
+			if (strlen(device->name) > 0 && strlen(device->address) > 0 && strlen(device->uuid) > 0 && strlen(device->adapter) > 0)
 			{
-				g_strlcpy(((userData *)user_data)->device->name, device->name, sizeof(device->name));
-				g_strlcpy(((userData *)user_data)->device->address, device->address, sizeof(device->address));
-				g_strlcpy(((userData *)user_data)->device->uuid, device->uuid, sizeof(device->uuid));
+				g_strlcpy(data->device->name, device->name, sizeof(device->name));
+				g_strlcpy(data->device->address, device->address, sizeof(device->address));
+				g_strlcpy(data->device->uuid, device->uuid, sizeof(device->uuid));
+				g_strlcpy(data->device->adapter, device->adapter, sizeof(device->adapter));
 				device_found(connection, user_data);
 			}
 			free(device);
@@ -129,26 +138,27 @@ static int adapter_set_property(GDBusConnection *connection, const char *prop, G
 
 static gboolean timeout_triggered(gpointer user_data)
 {
-	int counter = ((userData *)user_data)->counter;
+	userData *data = ((userData *)user_data);
+	int counter = data->counter;
 	counter++;
-	((userData *)user_data)->counter = counter;
+	data->counter = counter;
 	if (counter < BLUETOOTH_DISCOVERY_MAX_WAIT_SECONDS)
 	{
-		int found = (strlen(((userData *)user_data)->device->uuid) > 0);
+		int found = (strlen(data->device->uuid) > 0);
 		if (found)
 		{
-			info("Device found. Ending timer.");
 			return FALSE;
 		}
 		else
 		{
-			ninfo(".");
+			g_print(".");
 		}
 	}
 	else
 	{
-		info("Device not found. Ending timer.");
-		g_main_loop_quit(((userData *)user_data)->loop);
+		g_print("\n");
+		g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Device not found. Cleaning up and stopping program.");
+		g_main_loop_quit(data->loop);
 		return FALSE;
 	}
 	return TRUE;
@@ -168,9 +178,9 @@ void device_found(GDBusConnection *connection, userData *data)
 int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int timeout)
 {
 	GDBusConnection *connection;
-	userData *userData = malloc(sizeof(userData));
 	int resultCode, ret = RESULT_OK;
 	guint iface_added;
+	userData *userData = malloc(sizeof(userData));
 
 	connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
 	if (connection == NULL)
@@ -212,6 +222,9 @@ int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int t
 
 	g_timeout_add(timeout * 1000, timeout_triggered, userData);
 	g_main_loop_run(userData->loop);
+
+	adapter_call_method(connection, "StopDiscovery");
+	g_usleep(100);
 
 	resultCode = adapter_set_property(connection, "Powered", g_variant_new("b", FALSE));
 	if (resultCode)

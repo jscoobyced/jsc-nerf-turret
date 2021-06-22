@@ -18,7 +18,11 @@
     "coroutine": "c",
     "random": "c",
     "btserver.h": "c",
-    "logger.h": "c"
+    "logger.h": "c",
+    "glib.h": "c",
+    "hash_map": "c",
+    "hash_set": "c",
+    "slist": "c"
   },
   "files.watcherExclude": {
     "**/chroot-dir/**": true
