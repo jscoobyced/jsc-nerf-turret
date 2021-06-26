@@ -5,7 +5,7 @@
 void display_parameters_signature(GVariant *parameters)
 {
   const gchar *signature = g_variant_get_type_string(parameters);
-  g_print("Signature is [%s].\n", signature);
+  g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature is [%s].\n", signature);
 }
 
 void display_value(const gchar *key, GVariant *value)
@@ -13,32 +13,55 @@ void display_value(const gchar *key, GVariant *value)
   const gchar *signature = g_variant_get_type_string(value);
   if (g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN))
   {
-    g_print("Signature: [%s]\tKey: [%s]\tValue: [%s]\n", signature, key, g_variant_get_boolean(value) ? "true" : "false");
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature: [%s]\tKey: [%s]\tValue: [%s]\n", signature, key, g_variant_get_boolean(value) ? "true" : "false");
   }
   else if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING))
   {
-    g_print("Signature: [%s]\tKey: [%s]\tValue: [%s]\n", signature, key, g_variant_get_string(value, NULL));
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature: [%s]\tKey: [%s]\tValue: [%s]\n", signature, key, g_variant_get_string(value, NULL));
   }
   else if (g_variant_is_of_type(value, G_VARIANT_TYPE_INT16))
   {
-    g_print("Signature: [%s]\tKey: [%s]\tValue: [%d]\n", signature, key, g_variant_get_int16(value));
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature: [%s]\tKey: [%s]\tValue: [%d]\n", signature, key, g_variant_get_int16(value));
   }
   else if (g_variant_is_of_type(value, G_VARIANT_TYPE_INT32))
   {
-    g_print("Signature: [%s]\tKey: [%s]\tValue: [%d]\n", signature, key, g_variant_get_int32(value));
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature: [%s]\tKey: [%s]\tValue: [%d]\n", signature, key, g_variant_get_int32(value));
   }
-  else if (g_strcmp0(signature, "a{qv}") == 0)
+  else
   {
-    GVariantIter *iterator;
-    GVariant *variant;
-    guint16 *number;
-    g_variant_get(value, "a{qv}", &iterator);
-    while (g_variant_iter_loop(iterator, "qv", &number, &variant))
+    if (g_strcmp0(signature, "ay") == 0)
     {
-      g_print("Signature: [qv]\tKey: [%s]\tNumber: [%hn]\n", key, number);
-      display_value(key, variant);
+      GVariantIter *iterator;
+      guchar *c;
+      g_variant_get(value, "ay", &iterator);
+      int b = 1;
+      while (g_variant_iter_loop(iterator, "y", &c))
+      {
+        unsigned char *uc = (unsigned char *)c;
+        if (b == 2)
+        {
+          g_log(LOG_CLIENT, G_LOG_LEVEL_DEBUG, ":");
+        }
+        b = 2;
+        g_log(LOG_CLIENT, G_LOG_LEVEL_DEBUG, "%x", *uc);
+      }
+      g_variant_iter_free(iterator);
     }
-    g_variant_iter_free(iterator);
+    else if (g_strcmp0(signature, "a{qv}") == 0)
+    {
+      GVariantIter *iterator;
+      GVariant *variant;
+      guint16 *number;
+      g_variant_get(value, "a{qv}", &iterator);
+
+      while (g_variant_iter_loop(iterator, "{qv}", &number, &variant))
+      {
+        g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Signature: [qv]\tKey: [%s]\tDetails: ", key);
+        display_value(key, variant);
+        g_log(LOG_CLIENT, G_LOG_LEVEL_DEBUG, "\n");
+      }
+      g_variant_iter_free(iterator);
+    }
   }
 }
 
@@ -48,14 +71,14 @@ void display_properties(GVariantIter *properties)
   GVariant *value = NULL;
   if (properties == NULL)
   {
-    g_print("There are no property to display.\n");
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "There are no property to display.\n");
     return;
   }
 
   while (g_variant_iter_next(properties, "{&sv}", &key, &value))
   {
     const gchar *signature = g_variant_get_type_string(value);
-    g_print("Value signature is [%s].\n", signature);
+    g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Value signature is [%s].\n", signature);
 
     display_value(key, value);
 
@@ -71,6 +94,11 @@ static void _log_handler(const gchar *log_domain,
                          const gchar *message,
                          gpointer user_data)
 {
+  if (log_level == G_LOG_LEVEL_DEBUG)
+  {
+    g_print("%s", message);
+    return;
+  }
   time_t now = time(NULL);
   struct tm *ptm = localtime(&now);
   char time_display[TIME_BUF_LEN] = {0};
@@ -78,7 +106,7 @@ static void _log_handler(const gchar *log_domain,
   g_print("%s - %s - %s\n", time_display, log_domain, message);
 }
 
-void set_logger(const gchar *domain)
+void set_logger(const gchar *domain, GLogLevelFlags flag)
 {
-  g_log_set_handler(domain, G_LOG_LEVEL_MASK, _log_handler, NULL);
+  g_log_set_handler(domain, flag, _log_handler, NULL);
 }

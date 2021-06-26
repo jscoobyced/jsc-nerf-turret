@@ -9,6 +9,7 @@ typedef struct BtDevice
   gchar adapter[4 * BLUETOOTH_ADAPTER_STRING_SIZE];
   gchar name[4 * BLUETOOTH_NAME_MAX_LENGTH_BYTES];
   gchar uuid[4 * BLUETOOTH_UUID_STRING_SIZE];
+  gboolean complete;
 } btDevice;
 
 typedef void (*BluetoothDeviceCallback)(btDevice *);

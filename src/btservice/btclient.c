@@ -1,9 +1,31 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdio.h>
 #include <glib.h>
 #include <gio/gio.h>
 #include "btconstant.h"
 #include "btclient.h"
 #include "logger.h"
+
+char *get_path(char *address)
+{
+	int i = 0;
+	while (address[i] != '\0')
+	{
+		if (address[i] == ':')
+		{
+			address[i] = '_';
+		}
+		i++;
+	}
+	char base_path[] = "/org/bluez/hci0/dev_";
+	char *path = malloc(sizeof(char) * 64);
+	path[0] = '\0';
+	strcat(path, base_path);
+	strcat(path, address);
+	g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Path: %s", path);
+	return path;
+}
 
 static void get_device_info(const gchar *key, GVariant *value, btDevice *device, gchar *uuidToFind)
 {
@@ -90,27 +112,82 @@ static void device_appeared(GDBusConnection *connection,
 	}
 }
 
+static int call_method(GDBusConnection *connection,
+											 const gchar *path,
+											 const gchar *interface,
+											 const char *method,
+											 GVariant *parameters,
+											 const BluetoothConnectCallback callback,
+											 gpointer data)
+{
+	if (callback == NULL)
+	{
+		GVariant *result;
+		GError *error = NULL;
+
+		result = g_dbus_connection_call_sync(connection,
+																				 BLUEZ,
+																				 path,
+																				 interface,
+																				 method,
+																				 parameters,
+																				 NULL,
+																				 G_DBUS_CALL_FLAGS_NONE,
+																				 -1,
+																				 NULL,
+																				 &error);
+		if (error != NULL)
+		{
+			g_error("Error calling %s on %s due to [%s].", method, interface, error->message);
+			return ERR_CANNOT_CALL_METHOD;
+		}
+
+		if (result != NULL)
+		{
+			g_variant_unref(result);
+		}
+	}
+	else
+	{
+		g_dbus_connection_call(connection,
+													 BLUEZ,
+													 path,
+													 interface,
+													 method,
+													 parameters,
+													 NULL,
+													 G_DBUS_CALL_FLAGS_NONE,
+													 5000,
+													 NULL,
+													 callback,
+													 data);
+	}
+
+	return RESULT_OK;
+}
+
 static int adapter_call_method(GDBusConnection *connection, const char *method)
 {
-	GVariant *result;
-	GError *error = NULL;
+	return call_method(connection, BLUETOOTH_PATH_DEFAULT, BLUETOOTH_ADAPTER_DEFAULT, method, NULL, NULL, NULL);
+}
 
-	result = g_dbus_connection_call_sync(connection,
-																			 "org.bluez",
-																			 "/org/bluez/hci0",
-																			 "org.bluez.Adapter1",
-																			 method,
-																			 NULL,
-																			 NULL,
-																			 G_DBUS_CALL_FLAGS_NONE,
-																			 -1,
-																			 NULL,
-																			 &error);
-	if (error != NULL)
-		return ERR_CANNOT_CALL_METHOD;
+static int device_call_method(GDBusConnection *connection,
+															const gchar *path,
+															const char *method,
+															BluetoothConnectCallback callback,
+															gpointer data)
+{
+	return call_method(connection, path, BLUETOOTH_DEVICE_DEFAULT, method, NULL, callback, data);
+}
 
-	g_variant_unref(result);
-	return RESULT_OK;
+void device_paired_callback(GObject *object, GAsyncResult *result, gpointer user_data)
+{
+	GDBusConnection *connection = (GDBusConnection *)object;
+	userData *data = ((userData *)user_data);
+	g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Paired successfully with %s.", data->device->name);
+	gchar *path = get_path(data->device->address);
+	device_call_method(connection, path, "Connect", NULL, NULL);
+	g_main_loop_quit(data->loop);
 }
 
 static int adapter_set_property(GDBusConnection *connection, const char *prop, GVariant *value)
@@ -119,8 +196,8 @@ static int adapter_set_property(GDBusConnection *connection, const char *prop, G
 	GError *error = NULL;
 
 	result = g_dbus_connection_call_sync(connection,
-																			 "org.bluez",
-																			 "/org/bluez/hci0",
+																			 BLUEZ,
+																			 BLUETOOTH_PATH_DEFAULT,
 																			 "org.freedesktop.DBus.Properties",
 																			 "Set",
 																			 g_variant_new("(ssv)", "org.bluez.Adapter1", prop, value),
@@ -149,15 +226,10 @@ static gboolean timeout_triggered(gpointer user_data)
 		{
 			return FALSE;
 		}
-		else
-		{
-			g_print(".");
-		}
 	}
 	else
 	{
-		g_print("\n");
-		g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Device not found. Cleaning up and stopping program.");
+		g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Device not found. Cleaning up and stopping program.");
 		g_main_loop_quit(data->loop);
 		return FALSE;
 	}
@@ -166,12 +238,23 @@ static gboolean timeout_triggered(gpointer user_data)
 
 void device_found(GDBusConnection *connection, userData *data)
 {
+	data->device->complete = TRUE;
 	data->callback(data->device);
 	int resultCode = adapter_call_method(connection, "StopDiscovery");
 	g_usleep(100);
 	if (resultCode == RESULT_OK)
 	{
-		g_main_loop_quit(data->loop);
+		gchar *path = get_path(data->device->address);
+		resultCode = device_call_method(connection, path, "Pair", device_paired_callback, data);
+		if (resultCode == RESULT_OK)
+		{
+			g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Pairing requested.");
+		}
+		else
+		{
+			g_log(LOG_CLIENT, G_LOG_LEVEL_ERROR, "Cannot connect to device.");
+			g_main_loop_quit(data->loop);
+		}
 	}
 }
 
@@ -192,11 +275,12 @@ int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int t
 	userData->callback = callback;
 
 	userData->device = malloc(sizeof(btDevice));
+	userData->device->complete = FALSE;
 	userData->counter = 0;
 	g_strlcpy(userData->uuid, service_uuid, sizeof(userData->uuid));
 
 	iface_added = g_dbus_connection_signal_subscribe(connection,
-																									 "org.bluez",
+																									 BLUEZ,
 																									 "org.freedesktop.DBus.ObjectManager",
 																									 "InterfacesAdded",
 																									 NULL,
@@ -223,7 +307,10 @@ int discover_service(BluetoothDeviceCallback callback, char *service_uuid, int t
 	g_timeout_add(timeout * 1000, timeout_triggered, userData);
 	g_main_loop_run(userData->loop);
 
-	adapter_call_method(connection, "StopDiscovery");
+	if (!userData->device->complete)
+	{
+		adapter_call_method(connection, "StopDiscovery");
+	}
 	g_usleep(100);
 
 	resultCode = adapter_set_property(connection, "Powered", g_variant_new("b", FALSE));

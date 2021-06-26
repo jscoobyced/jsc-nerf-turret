@@ -116,7 +116,7 @@ static void signal_device_changed(GDBusConnection *conn,
 
 	if (strcmp(signature, "(sa{sv}as)") != 0)
 	{
-		g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+		g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
 		goto done;
 	}
 
@@ -127,11 +127,11 @@ static void signal_device_changed(GDBusConnection *conn,
 		{
 			if (!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN))
 			{
-				g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Invalid argument type for %s: %s != %s", key,
+				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Invalid argument type for %s: %s != %s", key,
 							g_variant_get_type_string(value), "b");
 				goto done;
 			}
-			g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Device is %s.", g_variant_get_boolean(value) ? "Connected" : "Disconnected");
+			g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Device is %s.", g_variant_get_boolean(value) ? "Connected" : "Disconnected");
 			if (!g_variant_get_boolean(value))
 			{
 				g_main_loop_quit(((serverUserData *)userdata)->loop);
@@ -149,7 +149,7 @@ done:
 
 static void new_connection(GDBusMethodInvocation *inv)
 {
-	g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "New connection.");
+	g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "New connection.");
 
 	GDBusMessage *msg = g_dbus_method_invocation_get_message(inv);
 	gchar *content = g_dbus_message_print(msg, 2);
@@ -157,7 +157,6 @@ static void new_connection(GDBusMethodInvocation *inv)
 	g_free(content);
 	GVariant *params = g_dbus_method_invocation_get_parameters(inv);
 
-	// DEBUG INFO
 	const char *object;
 	GVariant *properties;
 	gint32 *handle;
@@ -166,7 +165,6 @@ static void new_connection(GDBusMethodInvocation *inv)
 	GVariantIter iter;
 	g_variant_iter_init(&iter, properties);
 	display_properties(&iter);
-	// DEBUG INFO
 }
 
 static void signal_method_call(GDBusConnection *conn, const char *sender,
@@ -174,7 +172,7 @@ static void signal_method_call(GDBusConnection *conn, const char *sender,
 															 GDBusMethodInvocation *invocation, void *userdata)
 {
 
-	g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Method invoked is [%s]\n\t on path [%s]\n\t with sender [%s]\n\t and interface [%s].", method, path, sender, interface);
+	g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Method invoked is [%s]\n\t on path [%s]\n\t with sender [%s]\n\t and interface [%s].", method, path, sender, interface);
 	if (!g_strcmp0(method, "NewConnection"))
 	{
 		new_connection(invocation);
@@ -184,13 +182,14 @@ static void signal_method_call(GDBusConnection *conn, const char *sender,
 int register_service(char *service_path,
 										 char *service_name,
 										 int service_channel,
-										 char *service_uuid)
+										 char *service_uuid,
+										 GLogLevelFlags flag)
 {
 	GDBusProxy *proxy;
 	GDBusConnection *conn, *pconn;
 	GError *error = NULL;
 
-	set_logger(LOG_SERVER);
+	set_logger(LOG_SERVER, flag);
 
 	conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	g_assert_no_error(error);
@@ -198,9 +197,9 @@ int register_service(char *service_path,
 	proxy = g_dbus_proxy_new_sync(conn,
 																G_DBUS_PROXY_FLAGS_NONE,
 																NULL,
-																"org.bluez",
-																"/org/bluez",
-																"org.bluez.ProfileManager1",
+																BLUEZ,
+																BLUETOOTH_PATH_BASE,
+																BLUETOOTH_PROFILE_MANAGER_DEFAULT,
 																NULL,
 																&error);
 	g_assert_no_error(error);
@@ -218,11 +217,11 @@ int register_service(char *service_path,
 	userData->loop = g_main_loop_new(NULL, FALSE);
 
 	guint sub_id = g_dbus_connection_signal_subscribe(pconn,
-																										"org.bluez",
+																										BLUEZ,
 																										"org.freedesktop.DBus.Properties",
 																										"PropertiesChanged",
 																										NULL,
-																										"org.bluez.Device1",
+																										BLUETOOTH_DEVICE_DEFAULT,
 																										G_DBUS_SIGNAL_FLAGS_NONE,
 																										signal_device_changed,
 																										userData,
@@ -240,7 +239,7 @@ int register_service(char *service_path,
 	}
 	else if (info == NULL)
 	{
-		g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Error obtaining interface (NULL interface).");
+		g_log(LOG_SERVER, G_LOG_LEVEL_ERROR, "Error obtaining interface (NULL interface).");
 	}
 	else
 	{
@@ -250,7 +249,7 @@ int register_service(char *service_path,
 			if (interface != NULL)
 			{
 				gchar *interfaceName = interface->name;
-				g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Interface name is [%s].", interfaceName);
+				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Interface name is [%s].", interfaceName);
 			}
 
 			g_dbus_connection_register_object(conn,
@@ -259,7 +258,7 @@ int register_service(char *service_path,
 
 			if (sub_id > 0)
 			{
-				g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Registration successful. Waiting for connection.");
+				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Registration successful. Waiting for connection.");
 			}
 
 			g_main_loop_run(userData->loop);
