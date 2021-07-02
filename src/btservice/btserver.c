@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <glib.h>
 #include <gio/gio.h>
+#include <gio/gunixfdlist.h>
 #include "btconstant.h"
 #include "btserver.h"
 #include "logger.h"
@@ -148,28 +149,67 @@ done:
 	}
 }
 
-static void new_connection(GDBusMethodInvocation *inv)
+static gboolean
+read_data(GIOChannel *channel, GIOCondition condition, gpointer data)
+{
+	gchar *str_return;
+	gsize length;
+	gsize terminator_pos;
+	GError *error = NULL;
+
+	/*
+	gchar buffer[100];
+	gsize bytes_read;
+
+	g_io_channel_read_chars(channel, buffer, sizeof(buffer), &bytes_read, &error);
+
+  */
+	if (condition != G_IO_IN)
+	{
+		return TRUE;
+	}
+
+	g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Receiving a message");
+	if (g_io_channel_read_line(channel, &str_return, &length, &terminator_pos, &error) == G_IO_STATUS_ERROR)
+	{
+		g_warning("Something went wrong");
+	}
+
+	if (error != NULL)
+	{
+		g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Error: %s.\n", error->message);
+		return FALSE;
+	}
+
+	GString *strline = g_string_new(str_return);
+	if (strline != NULL)
+	{
+		g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Received: %s", strline->str, length, terminator_pos);
+		g_free(str_return);
+	}
+	return TRUE;
+}
+
+static void new_connection(GDBusMethodInvocation *invocation)
 {
 	g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "New connection.");
 
-	GDBusMessage *msg = g_dbus_method_invocation_get_message(inv);
+	GDBusMessage *msg = g_dbus_method_invocation_get_message(invocation);
 	gchar *content = g_dbus_message_print(msg, 2);
 	g_log(JSCBT, G_LOG_LEVEL_INFO, "Message is:\n%s", content);
 	g_free(content);
-	GVariant *params = g_dbus_method_invocation_get_parameters(inv);
-	const GDBusPropertyInfo *info = g_dbus_method_invocation_get_property_info(inv);
+	g_dbus_method_invocation_get_connection(invocation);
+	GVariant *params = g_dbus_method_invocation_get_parameters(invocation);
 
-	if (info != NULL)
-	{
-		g_log(JSCBT, G_LOG_LEVEL_INFO, "Property info name: %s.", info->name);
-	}
-
-	/*
 	const char *object;
 	GVariant *properties;
-	gint32 *handle;
+	gint handle;
 	g_variant_get(params, "(oha{sv})", &object, &handle, &properties);
-	*/
+	GUnixFDList *fdList = g_dbus_message_get_unix_fd_list(g_dbus_method_invocation_get_message(invocation));
+	int fd = g_unix_fd_list_get(fdList, handle, NULL);
+	g_log(JSCBT, G_LOG_LEVEL_INFO, "File descriptor %d", fd);
+	GIOChannel *channel = g_io_channel_unix_new(fd);
+	g_io_add_watch(channel, G_IO_IN, read_data, NULL);
 }
 
 static void signal_method_call(GDBusConnection *conn, const char *sender,
