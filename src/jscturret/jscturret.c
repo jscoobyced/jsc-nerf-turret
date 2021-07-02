@@ -10,13 +10,13 @@ void deviceCallback(btDevice *device)
 {
   if (device->complete == TRUE)
   {
-    g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Device %s [%s] is available.",
+    g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Device %s [%s] is available.",
           device->name,
           device->address);
   }
   else
   {
-    g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "No device found.");
+    g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "No device found.");
   }
 }
 
@@ -39,7 +39,7 @@ int main(int argc, char const *argv[])
   {
     if (strcmp("register", argv[1]) == 0)
     {
-      g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Starting registration of service \"%s\" of UUID [%s].", BLUETOOTH_SERVICE_NAME, BLUETOOTH_SERVICE_UUID);
+      g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Starting registration of service \"%s\" of UUID [%s].", BLUETOOTH_SERVICE_NAME, BLUETOOTH_SERVICE_UUID);
 
       int result = register_service(
           BLUETOOTH_SERVICE_PATH,
@@ -49,22 +49,22 @@ int main(int argc, char const *argv[])
           flag);
       if (result != RESULT_OK)
       {
-        g_log(LOG_SERVER, G_LOG_LEVEL_ERROR, "Error %d occured while registering.", result);
+        g_log(JSCBT, G_LOG_LEVEL_ERROR, "Error %d occured while registering.", result);
       }
     }
     else if (strcmp("discover", argv[1]) == 0)
     {
-      set_logger(LOG_CLIENT, flag);
+      set_logger(JSCBT, flag);
 
-      g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Starting discovery of UUID [%s].", BLUETOOTH_SERVICE_UUID);
+      g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Starting discovery of UUID [%s].", BLUETOOTH_SERVICE_UUID);
       int result = discover_service(deviceCallback, BLUETOOTH_SERVICE_UUID, BLUETOOTH_DISCOVERY_TIMEOUT_SECONDS);
       if (result != RESULT_OK)
       {
-        g_log(LOG_CLIENT, G_LOG_LEVEL_ERROR, "Error %d occured while searching for device.", result);
+        g_log(JSCBT, G_LOG_LEVEL_ERROR, "Error %d occured while searching for device.", result);
       }
       else
       {
-        g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Completed successfully.");
+        g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Completed successfully.");
       }
     }
     else

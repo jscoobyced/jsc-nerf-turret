@@ -116,22 +116,23 @@ static void signal_device_changed(GDBusConnection *conn,
 
 	if (strcmp(signature, "(sa{sv}as)") != 0)
 	{
-		g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
+		g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Invalid signature for %s: %s != %s", signal, signature, "(sa{sv}as)");
 		goto done;
 	}
 
 	g_variant_get(params, "(&sa{sv}as)", &iface, &properties, &unknown);
 	while (g_variant_iter_next(properties, "{&sv}", &key, &value))
 	{
-		if (!g_strcmp0(key, "Connected"))
+		display_value(key, value);
+		if (!g_strcmp0(key, "Connected") || !g_strcmp0(key, "Paired"))
 		{
 			if (!g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN))
 			{
-				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Invalid argument type for %s: %s != %s", key,
+				g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Invalid argument type for %s: %s != %s", key,
 							g_variant_get_type_string(value), "b");
 				goto done;
 			}
-			g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Device is %s.", g_variant_get_boolean(value) ? "Connected" : "Disconnected");
+			g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "%s is %s.", key, g_variant_get_boolean(value) ? "TRUE" : "FALSE");
 			if (!g_variant_get_boolean(value))
 			{
 				g_main_loop_quit(((serverUserData *)userdata)->loop);
@@ -149,22 +150,26 @@ done:
 
 static void new_connection(GDBusMethodInvocation *inv)
 {
-	g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "New connection.");
+	g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "New connection.");
 
 	GDBusMessage *msg = g_dbus_method_invocation_get_message(inv);
 	gchar *content = g_dbus_message_print(msg, 2);
-	g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Message is:\n%s", content);
+	g_log(JSCBT, G_LOG_LEVEL_INFO, "Message is:\n%s", content);
 	g_free(content);
 	GVariant *params = g_dbus_method_invocation_get_parameters(inv);
+	const GDBusPropertyInfo *info = g_dbus_method_invocation_get_property_info(inv);
 
+	if (info != NULL)
+	{
+		g_log(JSCBT, G_LOG_LEVEL_INFO, "Property info name: %s.", info->name);
+	}
+
+	/*
 	const char *object;
 	GVariant *properties;
 	gint32 *handle;
 	g_variant_get(params, "(oha{sv})", &object, &handle, &properties);
-	g_log(LOG_SERVER, G_LOG_LEVEL_INFO, "Object is [%s]\nHandle is [%ls]", object, handle);
-	GVariantIter iter;
-	g_variant_iter_init(&iter, properties);
-	display_properties(&iter);
+	*/
 }
 
 static void signal_method_call(GDBusConnection *conn, const char *sender,
@@ -172,10 +177,14 @@ static void signal_method_call(GDBusConnection *conn, const char *sender,
 															 GDBusMethodInvocation *invocation, void *userdata)
 {
 
-	g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Method invoked is [%s]\n\t on path [%s]\n\t with sender [%s]\n\t and interface [%s].", method, path, sender, interface);
+	g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Method invoked is [%s]\n\t on path [%s]\n\t with sender [%s]\n\t and interface [%s].", method, path, sender, interface);
 	if (!g_strcmp0(method, "NewConnection"))
 	{
 		new_connection(invocation);
+	}
+	else
+	{
+		g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Method: %s.", method);
 	}
 }
 
@@ -189,7 +198,7 @@ int register_service(char *service_path,
 	GDBusConnection *conn, *pconn;
 	GError *error = NULL;
 
-	set_logger(LOG_SERVER, flag);
+	set_logger(JSCBT, flag);
 
 	conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	g_assert_no_error(error);
@@ -239,7 +248,7 @@ int register_service(char *service_path,
 	}
 	else if (info == NULL)
 	{
-		g_log(LOG_SERVER, G_LOG_LEVEL_ERROR, "Error obtaining interface (NULL interface).");
+		g_log(JSCBT, G_LOG_LEVEL_ERROR, "Error obtaining interface (NULL interface).");
 	}
 	else
 	{
@@ -249,7 +258,7 @@ int register_service(char *service_path,
 			if (interface != NULL)
 			{
 				gchar *interfaceName = interface->name;
-				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Interface name is [%s].", interfaceName);
+				g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Interface name is [%s].", interfaceName);
 			}
 
 			g_dbus_connection_register_object(conn,
@@ -258,7 +267,7 @@ int register_service(char *service_path,
 
 			if (sub_id > 0)
 			{
-				g_log(LOG_SERVER, G_LOG_LEVEL_MESSAGE, "Registration successful. Waiting for connection.");
+				g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Registration successful. Waiting for connection.");
 			}
 
 			g_main_loop_run(userData->loop);

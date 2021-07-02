@@ -23,7 +23,7 @@ char *get_path(char *address)
 	path[0] = '\0';
 	strcat(path, base_path);
 	strcat(path, address);
-	g_log(LOG_CLIENT, G_LOG_LEVEL_INFO, "Path: %s", path);
+	g_log(JSCBT, G_LOG_LEVEL_INFO, "Path: %s", path);
 	return path;
 }
 
@@ -32,6 +32,8 @@ static void get_device_info(const gchar *key, GVariant *value, btDevice *device,
 	if (g_strcmp0(key, "Name") == 0)
 	{
 		const gchar *name = g_variant_get_string(value, NULL);
+		g_print("Name: %s\n", name);
+
 		g_strlcpy(device->name, name, sizeof(device->name));
 		return;
 	}
@@ -55,6 +57,7 @@ static void get_device_info(const gchar *key, GVariant *value, btDevice *device,
 		g_variant_iter_init(&i, value);
 		while (g_variant_iter_next(&i, "s", &uuid))
 		{
+			g_print("UUID: %s\n", uuid);
 			gchar *toFind = g_ascii_strdown(uuidToFind, -1);
 			gchar *current = g_ascii_strdown(uuid, -1);
 
@@ -184,7 +187,7 @@ void device_paired_callback(GObject *object, GAsyncResult *result, gpointer user
 {
 	GDBusConnection *connection = (GDBusConnection *)object;
 	userData *data = ((userData *)user_data);
-	g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Paired successfully with %s.", data->device->name);
+	g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Paired successfully with %s.", data->device->name);
 	gchar *path = get_path(data->device->address);
 	device_call_method(connection, path, "Connect", NULL, NULL);
 	g_main_loop_quit(data->loop);
@@ -229,7 +232,7 @@ static gboolean timeout_triggered(gpointer user_data)
 	}
 	else
 	{
-		g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Device not found. Cleaning up and stopping program.");
+		g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Device not found. Cleaning up and stopping program.");
 		g_main_loop_quit(data->loop);
 		return FALSE;
 	}
@@ -248,11 +251,11 @@ void device_found(GDBusConnection *connection, userData *data)
 		resultCode = device_call_method(connection, path, "Pair", device_paired_callback, data);
 		if (resultCode == RESULT_OK)
 		{
-			g_log(LOG_CLIENT, G_LOG_LEVEL_MESSAGE, "Pairing requested.");
+			g_log(JSCBT, G_LOG_LEVEL_MESSAGE, "Pairing requested.");
 		}
 		else
 		{
-			g_log(LOG_CLIENT, G_LOG_LEVEL_ERROR, "Cannot connect to device.");
+			g_log(JSCBT, G_LOG_LEVEL_ERROR, "Cannot connect to device.");
 			g_main_loop_quit(data->loop);
 		}
 	}

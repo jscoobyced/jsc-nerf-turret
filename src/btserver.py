@@ -1,7 +1,7 @@
 import bluetooth
 
 server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-server_sock.bind(("", bluetooth.PORT_ANY))
+server_sock.bind(("", 22))
 server_sock.listen(1)
 
 port = server_sock.getsockname()[1]

@@ -33,6 +33,7 @@ sock.connect((host, port))
 
 print("Connected. Type something...")
 while True:
+    sock.send("Hello.")
     data = input()
     if not data:
         break

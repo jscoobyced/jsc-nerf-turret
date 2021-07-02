@@ -1,7 +1,6 @@
 #include <glib.h>
 
-#define LOG_SERVER "BTSERVER"
-#define LOG_CLIENT "BTCLIENT"
+#define JSCBT "JSCBT"
 
 #define TIME_BUF_LEN 256
 
