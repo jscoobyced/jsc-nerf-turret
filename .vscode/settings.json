@@ -24,7 +24,8 @@
     "hash_set": "c",
     "slist": "c",
     "btconstant.h": "c",
-    "future": "c"
+    "future": "c",
+    "glib-object.h": "c"
   },
   "files.watcherExclude": {
     "**/chroot-dir/**": true

@@ -1,12 +1,13 @@
 bin_PROGRAMS = jscturret
 jscturret_SOURCES = jscturret.c
-jscturret_CPPFLAGS = -I$(top_srcdir)/jsc-bluetooth/src/btservice/
-jscturret_CPPFLAGS += -I$(top_srcdir)/jsc-bluetooth/src/utils/
+jscturret_CPPFLAGS = -I$(top_srcdir)/../jsc-bluetooth/src/btservice/
+jscturret_CPPFLAGS += -I$(top_srcdir)/../jsc-bluetooth/src/utils/
 jscturret_CPPFLAGS += ${GLIB_CFLAGS}
+jscturret_CPPFLAGS += ${GIO_CFLAGS}
 jscturret_CPPFLAGS += ${GIOUNIX_CFLAGS}
 jscturret_LDADD = ${GLIB_LIBS}
 jscturret_LDADD += ${DBUSGLIB_LIBS}
 jscturret_LDADD += ${DBUS_LIBS}
 jscturret_LDADD += ${GIO_LIBS}
-jscturret_LDADD += ../btservice/libbtservice.la
-jscturret_LDADD += ../utils/libjscutils.la
+jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/src/build/release/lib/libbtservice.la
+jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/src/build/release/lib/libjscutils.la

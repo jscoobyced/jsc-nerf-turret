@@ -6,8 +6,6 @@ LT_PREREQ([2.2])
 AC_PROG_CC
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
-                 jsc-bluetooth/src/utils/Makefile
-                 jsc-bluetooth/src/btservice/Makefile
                  stepper/Makefile
                  jscturret/Makefile])
 AC_OUTPUT

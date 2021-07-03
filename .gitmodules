@@ -1,0 +1,3 @@
+[submodule "jsc-bluetooth"]
+	path = jsc-bluetooth
+	url = https://github.com/jscoobyced/jsc-bluetooth

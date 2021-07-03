@@ -1,9 +1,5 @@
 #!/bin/bash
 
-pushd jsc-bluetooth/src > /dev/null
-./cleanup.sh
-popd > /dev/null
-
 rm -Rf autom4te.cache m4 config aclocal.m4 compile config.* \
       configure depcomp install-sh ltmain.sh Makefile.in missing \
       stamp-h1 Makefile libtool build \
