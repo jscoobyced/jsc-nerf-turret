@@ -8,8 +8,9 @@
 #define FAST 1
 
 void setupStepper();
+void stopStepper();
 void shutdownStepper();
 void move(int speed, int in1, int in2, int in3, int in4);
 void clockwise(int speed);
-void counterClockWise(int speed);
+void counterClockwise(int speed);
 void centerTurret(int speed);

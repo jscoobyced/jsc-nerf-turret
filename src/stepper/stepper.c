@@ -12,9 +12,14 @@ void setupStepper()
   pinMode(IN4, OUTPUT);
 }
 
-void shutdownStepper()
+void stopStepper()
 {
   move(SLOW, LOW, LOW, LOW, LOW);
+}
+
+void shutdownStepper()
+{
+  stopStepper();
 }
 
 void move(int speed, int in1, int in2, int in3, int in4)
@@ -38,7 +43,7 @@ void clockwise(int speed)
   move(speed, HIGH, LOW, LOW, HIGH);
 }
 
-void counterClockWise(int speed)
+void counterClockwise(int speed)
 {
   move(speed, HIGH, LOW, LOW, HIGH);
   move(speed, LOW, LOW, LOW, HIGH);
@@ -63,7 +68,8 @@ void centerTurret(int speed)
   round = 260 * speed;
   while (counter < round)
   {
-    counterClockWise(speed);
+    counterClockwise(speed);
     counter++;
   }
+  stopStepper();
 }

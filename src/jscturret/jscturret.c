@@ -11,13 +11,22 @@ void messageCallback(char *message)
 {
   if (!strcmp(message, "center"))
   {
-    centerTurret(SLOW);
+    centerTurret(FAST);
+  }
+  else if (!strcmp(message, "left"))
+  {
+    counterClockwise(FAST);
+  }
+  else if (!strcmp(message, "right"))
+  {
+    clockwise(FAST);
   }
 }
 
 void init_stepper()
 {
   setupStepper();
+  centerTurret(FAST);
 }
 
 void init_bluetooth(GLogLevelFlags flag)
@@ -41,5 +50,6 @@ int main(int argc, char const *argv[])
 {
   GLogLevelFlags flag = G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_CRITICAL;
 
+  init_stepper();
   init_bluetooth(flag);
 }
