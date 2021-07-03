@@ -2,7 +2,7 @@
 
 mkdir -p build
 cd build
-../configure --prefix=${PWD}/build/ && make
+../configure --prefix=${PWD}/release/ && make
 
 if [ "$1" = "install" ];
 then
