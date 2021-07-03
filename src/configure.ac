@@ -6,10 +6,10 @@ LT_PREREQ([2.2])
 AC_PROG_CC
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
-                 utils/Makefile
+                 jsc-bluetooth/src/utils/Makefile
+                 jsc-bluetooth/src/btservice/Makefile
                  stepper/Makefile
-                 jscturret/Makefile
-                 btservice/Makefile])
+                 jscturret/Makefile])
 AC_OUTPUT
 AC_CONFIG_MACRO_DIRS([m4])
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.0)

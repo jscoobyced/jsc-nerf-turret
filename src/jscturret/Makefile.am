@@ -1,7 +1,7 @@
 bin_PROGRAMS = jscturret
 jscturret_SOURCES = jscturret.c
-jscturret_CPPFLAGS = -I$(top_srcdir)/btservice/
-jscturret_CPPFLAGS += -I$(top_srcdir)/utils/
+jscturret_CPPFLAGS = -I$(top_srcdir)/jsc-bluetooth/src/btservice/
+jscturret_CPPFLAGS += -I$(top_srcdir)/jsc-bluetooth/src/utils/
 jscturret_CPPFLAGS += ${GLIB_CFLAGS}
 jscturret_CPPFLAGS += ${GIOUNIX_CFLAGS}
 jscturret_LDADD = ${GLIB_LIBS}
