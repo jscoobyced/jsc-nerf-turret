@@ -15,11 +15,11 @@ void messageCallback(char *message)
   }
   else if (!strcmp(message, "left"))
   {
-    counterClockwise(FAST);
+    counterClockwise(FAST, 10);
   }
   else if (!strcmp(message, "right"))
   {
-    clockwise(FAST);
+    clockwise(FAST, 10);
   }
 }
 

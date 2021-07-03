@@ -31,45 +31,46 @@ void move(int speed, int in1, int in2, int in3, int in4)
   delay(speed);
 }
 
-void clockwise(int speed)
+void clockwise(int speed, int steps)
 {
-  move(speed, HIGH, LOW, LOW, LOW);
-  move(speed, HIGH, HIGH, LOW, LOW);
-  move(speed, LOW, HIGH, LOW, LOW);
-  move(speed, LOW, HIGH, HIGH, LOW);
-  move(speed, LOW, LOW, HIGH, LOW);
-  move(speed, LOW, LOW, HIGH, HIGH);
-  move(speed, LOW, LOW, LOW, HIGH);
-  move(speed, HIGH, LOW, LOW, HIGH);
+  int counter = 0;
+  while (counter < steps)
+  {
+    counter++;
+    move(speed, HIGH, LOW, LOW, LOW);
+    move(speed, HIGH, HIGH, LOW, LOW);
+    move(speed, LOW, HIGH, LOW, LOW);
+    move(speed, LOW, HIGH, HIGH, LOW);
+    move(speed, LOW, LOW, HIGH, LOW);
+    move(speed, LOW, LOW, HIGH, HIGH);
+    move(speed, LOW, LOW, LOW, HIGH);
+    move(speed, HIGH, LOW, LOW, HIGH);
+  }
+  stopStepper();
 }
 
-void counterClockwise(int speed)
+void counterClockwise(int speed, int steps)
 {
-  move(speed, HIGH, LOW, LOW, HIGH);
-  move(speed, LOW, LOW, LOW, HIGH);
-  move(speed, LOW, LOW, HIGH, HIGH);
-  move(speed, LOW, LOW, HIGH, LOW);
-  move(speed, LOW, HIGH, HIGH, LOW);
-  move(speed, LOW, HIGH, LOW, LOW);
-  move(speed, HIGH, HIGH, LOW, LOW);
-  move(speed, HIGH, LOW, LOW, LOW);
+  int counter = 0;
+  while (counter < steps)
+  {
+    counter++;
+    move(speed, HIGH, LOW, LOW, HIGH);
+    move(speed, LOW, LOW, LOW, HIGH);
+    move(speed, LOW, LOW, HIGH, HIGH);
+    move(speed, LOW, LOW, HIGH, LOW);
+    move(speed, LOW, HIGH, HIGH, LOW);
+    move(speed, LOW, HIGH, LOW, LOW);
+    move(speed, HIGH, HIGH, LOW, LOW);
+    move(speed, HIGH, LOW, LOW, LOW);
+  }
+  stopStepper();
 }
 
 void centerTurret(int speed)
 {
   int round = 600 * speed;
-  int counter = 0;
-  while (counter < round)
-  {
-    clockwise(speed);
-    counter++;
-  }
-  counter = 0;
+  clockwise(speed, round);
   round = 260 * speed;
-  while (counter < round)
-  {
-    counterClockwise(speed);
-    counter++;
-  }
-  stopStepper();
+  counterClockwise(speed, round);
 }
