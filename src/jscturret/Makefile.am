@@ -9,5 +9,5 @@ jscturret_LDADD = ${GLIB_LIBS}
 jscturret_LDADD += ${DBUSGLIB_LIBS}
 jscturret_LDADD += ${DBUS_LIBS}
 jscturret_LDADD += ${GIO_LIBS}
-jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/src/build/release/lib/libbtservice.la
-jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/src/build/release/lib/libjscutils.la
+jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/release/lib/libbtservice.la
+jscturret_LDADD += $(top_srcdir)/../jsc-bluetooth/release/lib/libjscutils.la
