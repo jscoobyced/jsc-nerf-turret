@@ -27,6 +27,7 @@ chroot-dir
 # Build
 autom4te.cache
 build
+release
 config
 configure
 m4
